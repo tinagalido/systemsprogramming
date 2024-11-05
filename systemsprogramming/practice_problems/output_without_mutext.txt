@@ -1,0 +1,12 @@
+THREAD ID:924337984 , new value of glob:300
+THREAD ID:924337984 , new value of glob:600
+THREAD ID:974444352 , new value of glob:100
+THREAD ID:974444352 , new value of glob:200
+THREAD ID:-117897408 , new value of glob:1000
+THREAD ID:-117897408 , new value of glob:2000
+THREAD ID:-1158154432 , new value of glob:18445
+THREAD ID:1975355200 , new value of glob:19746
+THREAD ID:-1363388608 , new value of glob:17139
+THREAD ID:-1363388608 , new value of glob:19998
+THREAD ID:-891099328 , new value of glob:2000
+THREAD ID:-891099328 , new value of glob:4000

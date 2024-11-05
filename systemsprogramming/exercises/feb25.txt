@@ -1,0 +1,51 @@
+count = count + 1;
+
+Support count starts at address 2000 and ends at 2003
+
+Step 1: Copy (LOAD) the contents of locations 2000 - 2003
+into the CPU register, say R1
+Step 2: R1 = R1 + 1
+Step 3: Copy (STORE) the contents of R1 to memory location 2000 - 2003
+
+count = count + 1
+count = count + 1
+count = count + 1
+
+LOAD R1, M[2000]
+R1 = R1 + 1
+R1 = R1 + 1
+R1 = R1 + 1
+STORE M[2000], R1
+
+==========================
+
+count = 0
+Thread 1: count = count + 1
+Thread 2: count = count + 1
+
+Scenario 1: Thread 1 completes incrementing then Thread 2 starts to incrementing
+
+
+Thread 1                            Thread 2
+
+LOAD R1, M[2000]
+R1 = R1 + 1
+STORE M[2000], R1
+                                    LOAD R1, M[2000]
+                                    R1 = R1 + 1
+                                    STORE M[2000], R1
+
+Scenario 2: There is a context switch before
+Thread 1 completes
+
+
+Thread 1                            Thread 2
+
+LOAD R1, M[2000]
+R1 = R1 + 1
+                                    LOAD R1, M[2000]
+                                    R1 = R1 + 1
+                                    STORE M[2000], R1
+STORE M[2000], R1
+
+

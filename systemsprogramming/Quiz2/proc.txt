@@ -1,0 +1,92 @@
+/**
+ * Goal:
+ * The program should create k child processes. 
+ * (1) The first child process should sleep for n1 seconds and exit, 
+ * (2) The second child process should sleep for n2 seconds and exit, and so on. 
+ * (3) The parent process should wait for the child processes to complete in the reverse order 
+ * of process creation, i.e., it should first wait for the k-th child process to complete, 
+ * then for the (k - 1)-th child process to complete, and so on
+ * 
+ * Compile using: cc proc.c -o proc
+ * Run using: ./proc n1 n2 ... nk
+ * 
+*/
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <string.h>
+
+void printBye()
+{
+    printf("PID %d says Bye!!\n", getpid());
+}
+
+int main (int argc, char* argv[])
+{
+    pid_t parentPid, child;
+    pid_t childPid[argc - 1];
+    int status, index;
+    int noOfThreads;
+    int threadSleeps[argc - 1];
+
+    /* Register the exit handler */
+    status = atexit(printBye);
+    if (status == -1) 
+    {
+        printf("FAiled to register exit handler.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    //Handle error handling
+    if (argc < 2 ||
+        strcmp(argv[1],"-h") == 0 ||
+        strcmp(argv[1],"--help") == 0 )
+    {
+        printf("Usage: %s n1 n2 .. nk\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
+
+    noOfThreads = argc - 1;
+    //Populate thread sleeps array
+    for (index = 0; index < argc - 1; index)
+    {
+        threadSleeps[index] = atoi(argv[index + 1]);
+        
+    }
+
+    // Process creation
+    for (index = 0; index < noOfThreads; index++)
+    {
+        childPid[index] = fork();
+
+        switch (childPid[index])
+        {
+        case -1: /* This is to create child process */
+            printf("Failed to create child process.\n");
+            exit(EXIT_FAILURE);
+            //break;
+        case 0:   /* This is the child process*/
+            sleep(threadSleeps[index]);
+            exit(EXIT_SUCCESS);
+     
+        default:
+            break;
+    
+        }
+    } // end of for
+
+    // Parent to do process creation
+    for (index = 0; index < noOfThreads; index++)     /* Only runs in the parent */
+    {
+        child = waitpid(childPid[index], &status, 0);
+        if (child == -1) 
+        {
+            printf("Parent failed to wait for child to complete.\n");
+            exit(EXIT_FAILURE);
+        }
+
+        printf("Child process %d completed.\n", child);
+    }
+    exit(EXIT_SUCCESS);
+}

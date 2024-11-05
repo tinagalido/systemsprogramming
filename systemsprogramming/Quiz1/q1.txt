@@ -1,0 +1,99 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+int computeSquare(int number)
+{
+
+    return number*number;
+}
+
+int computeCube(int number)
+{
+    return number*number*number;
+}
+
+void transformArrayOfNumbers(int* numbers, int numberCount, int(*visitor) (int))
+{
+ 
+    int index;
+    for (index = 0; index < numberCount; index++)
+    {
+        numbers[index] = visitor(numbers[index]);
+    }
+}
+
+int main(int argc, char* argv[])
+{
+    int* numbers;
+    int numberCount;
+    int index;
+    int comAndMode = 2; // Length of command = command + mode
+    
+
+    //Handle line arguments
+    if (argc < 3 ||
+        strcmp(argv[1],"-h") == 0 ||
+        strcmp(argv[1],"--help") == 0 )
+    {
+        printf("Usage: %s mode n1 n2\n", argv[0]);
+        exit(1);
+    }
+    
+    numberCount = argc - 2; // Calculate length of the array; command line not included and mode
+    //TODO: Allocate the arrays and check if it failed
+    /*
+    * Hints:
+    * (1) If the size of each integer is x bytes and the number of integers is y
+    *      then the array needs x*y bytes
+    * (2) malloc returns void*, therefore the (int*) casting is required.
+    */
+    numbers = (int*) malloc(sizeof(int) * numberCount);
+    if (numbers == NULL)
+    {
+        printf("Malloc failed!\n");
+        exit(1);
+    }
+
+    //TODO: Populate the array
+    for (int index = 0; index < numberCount; index++)
+    {
+        numbers[index] = atoi(argv[comAndMode + index]);
+    }
+
+    if (strcmp(argv[1], "square") == 0)
+    {
+        transformArrayOfNumbers(
+            numbers,
+            numberCount,
+            computeSquare
+        );
+    } 
+    else if (strcmp(argv[1], "cube") == 0)
+    {
+        transformArrayOfNumbers(
+            numbers,
+            numberCount,
+            computeCube
+        );
+    }
+    else
+    {
+        printf("mode must be square or cube.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    //TODO: Print transormed integers
+    for (index = 0; index < numberCount; index++)
+    {
+        printf("%d\n", numbers[index]);
+    }
+    
+    //TODO: Deallocate the array
+    free(numbers);
+
+    exit(EXIT_SUCCESS);
+
+
+}

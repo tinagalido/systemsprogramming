@@ -1,0 +1,160 @@
+#include <stdlib.h>
+#include <stdio.h>
+#include <ctype.h>
+#include <string.h>
+#include <fcntl.h>
+#include <pthread.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/signal.h>
+#include <sys/stat.h>
+
+#define REQUEST_NAME "RequestFIFO"
+#define RESPONSE_NAME "ResponseFIFO.%d"
+
+#define MAX_LENGTH 100
+#define TRUE 1
+// volatile unsigned nextTicket = 1;
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
+typedef struct 
+{
+    pid_t pid;
+    char message[MAX_LENGTH];
+    char messageMode[10];
+} Request;
+
+typedef struct 
+{
+    char outputMessage[MAX_LENGTH];
+} Response;
+
+/* Exit handler for removing response FIFO */
+void removeResponseFifo()
+{
+    int status;
+    char responseFifoName[MAX_LENGTH];
+
+    snprintf(responseFifoName, MAX_LENGTH, RESPONSE_NAME, getpid());
+
+    status = unlink(responseFifoName);
+    if (status == -1)
+    {
+        printf("Client failed to remove response FIFO.\n");
+    }
+
+}
+
+/* Create signal handler for CTRL+C */
+void handleInterruptSignal(int)
+{
+    exit(EXIT_SUCCESS);
+}
+
+int main(int argc, char* argv[])
+{
+    int status;
+    int requestFifoDescriptor, responseFifoDescriptor;
+    Request request;
+    Response response;
+    int numRead, numWritten;
+    char responseFifoName[MAX_LENGTH];
+    char modeString[10];
+    char responseMessage[MAX_LENGTH];
+    char requestMessage[MAX_LENGTH];
+
+    if (argc < 3 || 
+        strcmp(argv[1],"-h") == 0 ||
+        strcmp(argv[1],"--help") == 0)
+    {
+        printf("Usage: %s <message> <mode>\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
+
+    // Retrieve user input into variables
+    if (strcmp(argv[2],"upper") == 0)
+    {
+        strcpy(modeString,"upper");
+    } else if (strcmp(argv[2], "lower") == 0)
+    {
+        strcpy(modeString,"lower");
+    }
+    if (argv[1] != NULL)
+    {
+        strcpy(requestMessage, argv[1]);
+    }
+
+    /* Register the exit handler */
+    status = atexit(removeResponseFifo);
+    if (status != 0)
+    {
+        printf("Client was unable to register exit handler.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    /* Create the response FIFO */
+    snprintf(RESPONSE_NAME, MAX_LENGTH, RESPONSE_NAME, getpid());
+
+    status = mkfifo(RESPONSE_NAME, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+    if (status == -1)
+    {
+        printf("Client failed to create response FIFO.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    /* Prepare the request */
+    strcpy(request.message, requestMessage);
+
+    /* Put the request on the request FIFO */
+    requestFifoDescriptor = open(REQUEST_NAME, O_WRONLY);
+    if (requestFifoDescriptor == -1)
+    {
+        printf("Client cannot reach server.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    numWritten = write(requestFifoDescriptor, &request, sizeof(Request));
+    if (numWritten < sizeof(Request))
+    {
+        printf("Client encountered partial write error while writing the request.\n");
+        exit(EXIT_FAILURE);
+    }  
+
+    status = close(requestFifoDescriptor);
+    if (status == -1)
+    {
+        printf("Client failed to close the request FIFO.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    /* Read the response */
+    responseFifoDescriptor = open(responseFifoName, O_RDONLY);
+    if (responseFifoDescriptor == -1)
+    {
+        printf("Client failed to open response FIFO.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    numRead = read(responseFifoDescriptor, &response, sizeof(Response));
+    if (numRead == -1)
+    {
+        printf("Client failed to read response.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    // Print the output message
+    printf("%s\n", response.outputMessage);
+
+    status = close(responseFifoDescriptor);
+    if (status == -1)
+    {
+        printf("Client failed to close response FIFO.\n");
+        exit(EXIT_FAILURE);
+    }
+  
+    exit(EXIT_SUCCESS);
+}
+
+
+
+

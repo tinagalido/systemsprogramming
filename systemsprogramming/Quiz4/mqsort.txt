@@ -1,0 +1,156 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <mqueue.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <string.h>
+
+int main (int argc, char* argv[])
+{
+
+    int status;
+    mqd_t messageQueueDescriptor;
+    struct mq_attr attributes;
+    int numList[10],numSortedList[10];
+    int index,numArgs;
+    int status, numRead;
+
+    if (argc < 3 ||
+        strcmp(argv[1], "-h") == 0 ||
+        strcmp(argv[1], "--help") == 0)
+    {
+        printf("Usage: ./mqsort message_queue_name n1 n2 ...\n");
+        exit(EXIT_FAILURE);
+    }
+    numArgs = argc - 2;
+    // Populate main list
+    for (index = 0; index < numArgs; index++)
+    {
+        numList[index] = atoi(argv[index] + 2);
+    }
+
+    /* Define the MAXIMUM size of a message */
+    attributes.mq_msgsize = sizeof(int);
+    
+    /* Maximum number of messages the message queue can hold */
+    attributes.mq_maxmsg = 10;
+
+    messageQueueDescriptor = mq_open(
+        "/SortMessageQueue",
+        O_CREAT,        // Flag
+        S_IRUSR | S_IWUSR,  // Permissions
+        &attributes
+    );
+
+    if (messageQueueDescriptor == (mqd_t) -1)
+    {
+        printf("Failed to create message queue.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    // READ
+    messageQueueDescriptor = mq_open(
+        "/SortMessageQueue",
+        O_RDONLY
+    );
+
+    if (messageQueueDescriptor == (mqd_t) -1)
+    {
+        printf("Failed to open message queue.\n");
+        exit(EXIT_FAILURE);
+    }
+    /* Read the message queue attributes*/
+    status = mq_getattr(
+        messageQueueDescriptor, 
+        &attributes
+    );
+    if (status != 0)
+    {
+        printf("Failed to get attributes of message queue.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    
+    /* Read the messages one at a time and print out*/
+    for (index = 0; index < numArgs; index++)
+    {
+        numRead = mq_receive(
+            messageQueueDescriptor,
+            (int*)&numList,
+            sizeof(int),
+            &numList
+        );
+        if (numRead == -1)
+        {
+            printf("REading from message queue failed.\n");
+            exit(EXIT_FAILURE);
+        }
+    
+    }
+    status = mq_close(messageQueueDescriptor);
+    if (status == -1)
+    {
+        printf("Failed to close message queue.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    // WRITE
+    messageQueueDescriptor = mq_open(
+        "/SortMessageQueue",
+        O_WRONLY
+    );
+
+    if (messageQueueDescriptor == (mqd_t) -1)
+    {
+        printf("Failed to open message queue.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    // Sort the numbers
+    for (index = 0; index < numArgs; index)
+    {
+        if (index == 0)
+        {
+            numSortedList[index] = numList[index];
+        }
+        else 
+        {
+            if (numList[index] < numList[index-1]) // e.g.3 5
+            {
+                numSortedList[index] = numList[index-1];
+            } else
+            {
+                numSortedList[index] = numList[index];
+            }
+        }
+    }
+
+    for (index = 0; index < 10; index++)
+    {
+        status = mq_send(
+            messageQueueDescriptor,
+            (int*)&numList[index],
+            sizeof(int),
+            0  // index
+        );
+
+        if (status == -1)
+        {
+            printf("Failed to write to message queue.\n");
+            exit(EXIT_FAILURE);
+        }
+        // Print
+        for (index = 0; index < numArgs; index++)
+        {
+            printf("%d\n", numSortedList[index]);
+        }
+        
+    }
+
+    status = mq_close(messageQueueDescriptor);
+    if (status == -1)
+    {
+        printf("Failed to close message queue.\n");
+        exit(EXIT_FAILURE);
+    }
+}

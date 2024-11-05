@@ -1,0 +1,156 @@
+/**
+ * Suppose that Person is a struct datatype with two fields, 
+ * an ID which is an integer, and a name with at most 20 bytes. 
+ * Write a C program in which the child process writes one or more Person variables 
+ * to a pipe while the parent process reads them from the pipe 
+ * and prints them to the terminal. Your program must be compiled as follows:
+ * 
+ * Compile using : cc assignment3.c -o assignment3
+ * Run using: ./assignment3 id1 name1 id2 name2
+*/
+
+/*
+ * Parent process writes the message "Hello world" to the pipe.
+ * Child process reads the message and prints it.
+*/
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <string.h>
+
+#define MAX_NAME_LENGTH = 10
+
+typedef struct
+{
+    int id;
+    char* name;
+} Person;
+
+int main(int argc, char* argv[])
+{
+    int pipeDescriptor[2];
+    int status, childStatus;
+    // char message[100];
+    char value;
+    int childId;
+    int idIndex, nameIndex;
+    int index;
+    int nameLength, idLength;
+    int numWritten, numRead, numValues;
+    int noOfArgs = argc - 1;
+    int arrInt[noOfArgs]; 
+    Person person;
+    
+    /* Error checking */
+    if (argc < 2 ||
+        strcmp(argv[1], "-h") == 0 ||
+        strcmp(argv[1], "--help") == 0)
+    {
+        printf("Usage: %s id1 name1 id2 name2 \n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
+
+    /* Populate persons */
+    for (idIndex = 1; idIndex < noOfArgs; idIndex+2)
+    {
+        person.id = argv[idIndex];
+        
+    }
+    for (nameIndex = 2; nameIndex < noOfArgs; nameIndex+2)
+    {
+        person.name = argv[nameIndex];
+    }
+
+    status = pipe(pipeDescriptor);
+    if (status == -1)
+    {
+        printf("Failed to create pipe.\n");
+        exit(EXIT_FAILURE);
+    }
+    /* At this point, pipeDescriptor[0] is the read descriptor */
+    /* pipeDescriptor[1] is the write descriptor */
+
+    childId = fork();
+    switch(childId)
+    {
+        case -1:
+            printf("Failed to create child process.\n");
+            exit(EXIT_FAILURE);
+
+        case 0:
+        
+            /* Close the read descriptor */
+            status = close(pipeDescriptor[0]);
+            if (status == -1)
+            {
+                printf("Parent failed to close read descriptor.\n");
+                _exit(EXIT_FAILURE);
+            }
+
+            // nameLength = strlen(person.name) + 1; /* including \0 */
+            // idLength = strlen(person.id) + 1;
+            numWritten = write(pipeDescriptor[1], person, sizeof(Person));
+            if (numWritten != sizeof(Person))
+            {
+                printf("Partial write error.\n");
+                _exit(EXIT_FAILURE);
+            }
+            
+            /* Close the write descriptor */
+            status = close(pipeDescriptor[1]);
+            if (status == -1)
+            {
+                printf("Parent failed to close write descriptor.\n");
+                _exit(EXIT_FAILURE);
+            }
+            
+            _exit(EXIT_SUCCESS);
+        default:
+            /* Close the write descriptor */
+            status = close(pipeDescriptor[1]);
+            if (status == -1)
+            {
+                printf("Child failed to close write descriptor.\n");
+                exit(EXIT_FAILURE);
+            }
+
+            numRead = read(pipeDescriptor[0], &value, sizeof(char));
+            while(numRead > 0)
+            {
+                if (value == '\0')
+                {
+                    printf("\n");
+                    break;
+                }
+
+                printf("%c", value);
+                numRead = read(pipeDescriptor[0], &value, sizeof(char));
+            }
+
+            if (numRead == -1)
+            {
+                printf("Child failed to read from the pipe.\n");
+                exit(EXIT_FAILURE);
+            }
+
+            /* Close the read descriptor */
+            status = close(pipeDescriptor[0]);
+            if (status == -1)
+            {
+                printf("Child failed to close read descriptor.\n");
+                exit(EXIT_FAILURE);
+            }
+
+
+            status = wait(&childStatus);
+            if (status == -1)
+            {
+                printf("Failed to wait for child process to complete.\n");
+                exit(EXIT_FAILURE);
+            }
+
+            exit(EXIT_SUCCESS);
+    }
+
+}

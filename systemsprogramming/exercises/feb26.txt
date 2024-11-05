@@ -1,0 +1,16 @@
+Global variables: x,y
+Mutexes: m1, m2
+
+Thread 1                            Thread 2
+
+lock(m1)                            lock(m2)
+lock(m2)                            lock(m1)
+x = x + y                           y = y + x
+unlock(m2)                          unlock(m1)
+unlock(m1)                          unlock(m2)
+
+-----------------------------
+
+PRODUCER CONSUMER PROBLEM
+
+

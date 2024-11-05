@@ -1,0 +1,8 @@
+THREAD ID:815789632 , new value of glob:100
+THREAD ID:807396928 , new value of glob:200
+THREAD ID:-1382025664 , new value of glob:100
+THREAD ID:-1390418368 , new value of glob:200
+THREAD ID:1254094400 , new value of glob:7978
+THREAD ID:188741184 , new value of glob:40
+THREAD ID:180348480 , new value of glob:80
+THREAD ID:926938688 , new value of glob:300
